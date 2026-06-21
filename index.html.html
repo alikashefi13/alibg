@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ali's Board Game Vault</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --void:#050608;
+  --deep:#0a0c12;
+  --surface:#111420;
+  --card:#161926;
+  --border:rgba(255,255,255,0.06);
+  --border2:rgba(255,255,255,0.12);
+  --neon:#7c3aff;
+  --neon2:#a855f7;
+  --amber:#f59e0b;
+  --red:#ef4444;
+  --text:#e8eaf0;
+  --muted:#6b7280;
+  --glow:rgba(124,58,255,0.4);
+}
+
+html{scroll-behavior:smooth}
+body{
+  background:var(--void);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  overflow-x:hidden;
+}
+
+/* ══ NOISE OVERLAY ══ */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:9999;opacity:.4;
+}
+
+/* ══ CURSOR ══ */
+.cursor{
+  width:12px;height:12px;
+  background:var(--neon2);
+  border-radius:50%;
+  position:fixed;
+  pointer-events:none;
+  z-index:99999;
+  transform:translate(-50%,-50%);
+  transition:transform 0.1s,width 0.2s,height 0.2s,opacity 0.2s;
+  mix-blend-mode:screen;
+}
+.cursor-ring{
+  width:40px;height:40px;
+  border:1px solid var(--neon2);
+  border-radius:50%;
+  position:fixed;
+  pointer-events:none;
+  z-index:99998;
+  transform:translate(-50%,-50%);
+  transition:transform 0.15s ease,width 0.3s,height 0.3s;
+  opacity:0.5;
+}
+
+/* ══ HERO ══ */
+.hero{
+  height:100vh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  position:relative;
+  overflow:hidden;
+}
+
+/* Animated grid */
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(124,58,255,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,58,255,0.08) 1px, transparent 1px);
+  background-size:60px 60px;
+  animation:gridMove 20s linear infinite;
+}
+@keyframes gridMove{
+  0%{transform:translateY(0)}
+  100%{transform:translateY(60px)}
+}
+
+/* Orbs */
+.orb{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(80px);
+  animation:orbFloat 8s ease-in-out infinite;
+  pointer-events:none;
+}
+.orb1{width:500px;height:500px;background:rgba(124,58,255,0.15);top:-100px;left:-100px;animation-delay:0s}
+.orb2{width:400px;height:400px;background:rgba(168,85,247,0.1);bottom:-100px;right:-100px;animation-delay:-4s}
+.orb3{width:300px;height:300px;background:rgba(245,158,11,0.08);top:50%;left:50%;animation-delay:-2s}
+@keyframes orbFloat{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-30px) scale(1.05)}
+}
+
+.hero-content{position:relative;z-index:2;text-align:center;padding:0 20px}
+
+.hero-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1px solid rgba(124,58,255,0.4);
+  border-radius:20px;
+  padding:6px 16px;
+  font-size:11px;letter-spacing:0.15em;text-transform:uppercase;
+  color:var(--neon2);
+  margin-bottom:32px;
+  background:rgba(124,58,255,0.08);
+  backdrop-filter:blur(10px);
+}
+.hero-tag::before{
+  content:'';width:6px;height:6px;
+  background:var(--neon2);border-radius:50%;
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:0.5;transform:scale(1.5)}
+}
+
+.hero-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(72px,14vw,160px);
+  line-height:0.9;
+  letter-spacing:-0.02em;
+  margin-bottom:24px;
+}
+.hero-title .line1{
+  display:block;
+  background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.6) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-title .line2{
+  display:block;
+  background:linear-gradient(135deg,var(--neon) 0%,var(--neon2) 50%,var(--amber) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+
+.hero-sub{
+  font-size:14px;color:var(--muted);letter-spacing:0.05em;
+  margin-bottom:48px;
+}
+
+.hero-stats{
+  display:flex;justify-content:center;gap:48px;
+  margin-bottom:48px;flex-wrap:wrap;
+}
+.hero-stat-n{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:48px;
+  background:linear-gradient(135deg,var(--neon2),var(--amber));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  display:block;line-height:1;
+}
+.hero-stat-l{
+  font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);
+}
+
+.scroll-hint{
+  position:absolute;bottom:32px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  color:var(--muted);font-size:10px;letter-spacing:0.2em;text-transform:uppercase;
+  animation:bounce 2s infinite;
+}
+.scroll-hint::after{
+  content:'';width:1px;height:40px;
+  background:linear-gradient(to bottom,var(--neon2),transparent);
+}
+@keyframes bounce{
+  0%,100%{transform:translateX(-50%) translateY(0)}
+  50%{transform:translateX(-50%) translateY(8px)}
+}
+
+/* ══ HERO SLIDESHOW ══ */
+.hero-slideshow{
+  position:absolute;inset:0;z-index:1;
+  display:flex;
+}
+.slide{
+  position:absolute;inset:0;
+  background-size:cover;background-position:center;
+  opacity:0;
+  transition:opacity 1.5s ease;
+}
+.slide.active{opacity:0.08}
+
+/* ══ NAV ══ */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:20px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  transition:background 0.3s,backdrop-filter 0.3s;
+}
+nav.scrolled{
+  background:rgba(5,6,8,0.8);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:24px;
+  background:linear-gradient(135deg,var(--neon2),var(--amber));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:0.05em;
+}
+.nav-count{
+  font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);
+}
+.nav-count span{color:var(--neon2);font-family:'Space Mono',monospace;}
+
+/* ══ MAIN SECTION ══ */
+.vault{
+  padding:80px 40px;
+  max-width:1400px;
+  margin:0 auto;
+}
+
+.section-label{
+  display:flex;align-items:center;gap:16px;
+  margin-bottom:48px;
+}
+.section-label::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(to right,var(--border2),transparent);
+}
+.section-label-text{
+  font-family:'Space Mono',monospace;
+  font-size:11px;letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--neon2);
+}
+
+/* ══ FILTERS ══ */
+.filters{
+  display:flex;gap:8px;flex-wrap:wrap;margin-bottom:40px;
+}
+.f-btn{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:6px;
+  color:var(--muted);
+  cursor:pointer;font:inherit;
+  font-size:11px;letter-spacing:0.08em;text-transform:uppercase;
+  padding:8px 16px;
+  transition:all 0.2s;
+  position:relative;overflow:hidden;
+}
+.f-btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,var(--neon),var(--neon2));
+  opacity:0;transition:opacity 0.2s;
+}
+.f-btn span{position:relative;z-index:1}
+.f-btn:hover{border-color:var(--neon2);color:var(--text)}
+.f-btn:hover::before{opacity:0.15}
+.f-btn.active{
+  border-color:var(--neon2);
+  color:#fff;
+}
+.f-btn.active::before{opacity:0.2}
+
+/* ══ SEARCH ══ */
+.search-wrap{
+  position:relative;margin-bottom:48px;max-width:400px;
+}
+.search-wrap::before{
+  content:'⌕';
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  color:var(--muted);font-size:18px;pointer-events:none;
+}
+.s-input{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font:inherit;font-size:14px;
+  padding:12px 16px 12px 42px;
+  width:100%;
+  outline:none;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.s-input:focus{
+  border-color:var(--neon2);
+  box-shadow:0 0 0 3px rgba(124,58,255,0.15);
+}
+.s-input::placeholder{color:var(--muted)}
+
+/* ══ GAME GRID ══ */
+.game-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:20px;
+}
+
+/* ══ GAME CARD ══ */
+.g-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  cursor:pointer;
+  transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),
+             border-color 0.3s,
+             box-shadow 0.3s;
+  position:relative;
+  transform-style:preserve-3d;
+}
+.g-card:hover{
+  transform:translateY(-8px) scale(1.02);
+  border-color:rgba(124,58,255,0.5);
+  box-shadow:0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,58,255,0.2), 0 0 40px rgba(124,58,255,0.15);
+}
+
+/* Shine effect */
+.g-card::after{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.04) 50%,transparent 60%);
+  transform:translateX(-100%);
+  transition:transform 0.6s;
+  pointer-events:none;
+}
+.g-card:hover::after{transform:translateX(100%)}
+
+.g-img-wrap{
+  height:200px;
+  overflow:hidden;
+  position:relative;
+}
+.g-img-wrap::after{
+  content:'';
+  position:absolute;bottom:0;left:0;right:0;height:80px;
+  background:linear-gradient(to top,var(--card),transparent);
+}
+.g-img{
+  width:100%;height:100%;
+  object-fit:cover;
+  transition:transform 0.5s ease;
+}
+.g-card:hover .g-img{transform:scale(1.08)}
+
+.g-body{padding:16px}
+
+.g-name{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:22px;letter-spacing:0.02em;
+  margin-bottom:8px;
+  line-height:1.1;
+}
+
+.g-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.g-tag{
+  background:rgba(124,58,255,0.1);
+  border:1px solid rgba(124,58,255,0.2);
+  border-radius:4px;
+  color:var(--neon2);
+  font-size:10px;letter-spacing:0.08em;text-transform:uppercase;
+  padding:2px 8px;
+}
+.g-tag.amber{
+  background:rgba(245,158,11,0.1);
+  border-color:rgba(245,158,11,0.2);
+  color:var(--amber);
+}
+
+.g-meta{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;color:var(--muted);
+}
+.g-year{
+  font-family:'Space Mono',monospace;
+  color:var(--muted);font-size:11px;
+}
+.g-bgg-link{
+  display:inline-flex;align-items:center;gap:4px;
+  color:var(--neon2);font-size:11px;text-decoration:none;
+  opacity:0;transition:opacity 0.2s;
+  pointer-events:none;
+}
+.g-card:hover .g-bgg-link{opacity:1;pointer-events:all}
+
+/* ══ MODAL ══ */
+.modal-overlay{
+  position:fixed;inset:0;z-index:1000;
+  background:rgba(0,0,0,0.85);
+  backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+  opacity:0;pointer-events:none;
+  transition:opacity 0.3s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+
+.modal{
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:24px;
+  width:100%;max-width:700px;
+  max-height:90vh;overflow:hidden;
+  transform:translateY(40px) scale(0.95);
+  transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  position:relative;
+}
+.modal-overlay.open .modal{transform:none}
+
+.modal-img-wrap{
+  height:280px;overflow:hidden;position:relative;
+}
+.modal-img-wrap::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:120px;
+  background:linear-gradient(to top,var(--surface),transparent);
+}
+.modal-img{width:100%;height:100%;object-fit:cover}
+
+.modal-glow{
+  position:absolute;top:0;left:0;right:0;height:280px;
+  pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%,rgba(124,58,255,0.2),transparent 70%);
+}
+
+.modal-body{padding:32px;overflow-y:auto;max-height:calc(90vh - 280px)}
+
+.modal-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:40px;letter-spacing:0.02em;
+  margin-bottom:8px;
+  background:linear-gradient(135deg,#fff,rgba(255,255,255,0.7));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.modal-year{
+  font-family:'Space Mono',monospace;
+  font-size:12px;color:var(--neon2);
+  margin-bottom:24px;
+  display:block;
+}
+
+.modal-props{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+  gap:16px;margin-bottom:28px;
+}
+.modal-prop{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px;
+}
+.modal-prop dt{
+  font-size:9px;letter-spacing:0.15em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:6px;
+}
+.modal-prop dd{font-size:16px;font-weight:500}
+
+.modal-bgg{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--neon),var(--neon2));
+  border:none;border-radius:10px;
+  color:#fff;font:inherit;font-size:13px;font-weight:500;
+  padding:12px 24px;cursor:pointer;text-decoration:none;
+  transition:transform 0.2s,box-shadow 0.2s;
+}
+.modal-bgg:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(124,58,255,0.4);
+}
+
+.modal-close{
+  position:absolute;top:16px;right:16px;z-index:10;
+  background:rgba(0,0,0,0.5);
+  backdrop-filter:blur(10px);
+  border:1px solid var(--border2);
+  border-radius:50%;
+  width:40px;height:40px;
+  color:var(--text);font-size:18px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background 0.2s,transform 0.2s;
+}
+.modal-close:hover{background:rgba(239,68,68,0.3);transform:rotate(90deg)}
+
+/* ══ FEATURED SLIDESHOW ══ */
+.featured{
+  padding:0 40px 80px;
+  max-width:1400px;margin:0 auto;
+}
+.slideshow-wrap{
+  position:relative;
+  border-radius:24px;overflow:hidden;
+  height:400px;
+}
+.ss-slide{
+  position:absolute;inset:0;
+  display:flex;align-items:flex-end;
+  padding:48px;
+  opacity:0;
+  transition:opacity 0.8s ease;
+  background-size:cover;background-position:center;
+}
+.ss-slide.active{opacity:1}
+.ss-slide::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(5,6,8,0.9) 0%,rgba(5,6,8,0.3) 100%);
+}
+.ss-content{position:relative;z-index:1;max-width:500px}
+.ss-label{
+  font-size:10px;letter-spacing:0.25em;text-transform:uppercase;
+  color:var(--neon2);margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.ss-label::before{content:'';width:24px;height:1px;background:var(--neon2)}
+.ss-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(36px,5vw,64px);
+  line-height:1;margin-bottom:16px;
+}
+.ss-meta{font-size:13px;color:rgba(232,234,240,0.6)}
+.ss-dots{
+  position:absolute;bottom:24px;right:32px;
+  display:flex;gap:8px;
+}
+.ss-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:rgba(255,255,255,0.3);
+  cursor:pointer;transition:all 0.3s;
+}
+.ss-dot.active{
+  background:var(--neon2);width:20px;border-radius:3px;
+}
+.ss-arrows{
+  position:absolute;top:50%;right:32px;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:8px;
+}
+.ss-arrow{
+  background:rgba(255,255,255,0.1);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:8px;
+  width:40px;height:40px;
+  color:var(--text);font-size:16px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background 0.2s;
+}
+.ss-arrow:hover{background:rgba(124,58,255,0.3)}
+
+/* ══ EMPTY STATE ══ */
+.empty{
+  text-align:center;padding:80px 20px;
+  color:var(--muted);
+}
+.empty-icon{font-size:48px;margin-bottom:16px;display:block}
+
+/* ══ COUNT BADGE ══ */
+.count-badge{
+  background:rgba(124,58,255,0.15);
+  border:1px solid rgba(124,58,255,0.3);
+  border-radius:20px;
+  color:var(--neon2);
+  font-family:'Space Mono',monospace;
+  font-size:11px;padding:4px 12px;
+  margin-left:12px;
+}
+
+.hidden{display:none!important}
+
+@media(max-width:768px){
+  nav{padding:16px 20px}
+  .vault,.featured{padding-left:20px;padding-right:20px}
+  .slideshow-wrap{height:280px}
+  .ss-arrows{display:none}
+  .game-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+  .g-img-wrap{height:140px}
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-logo">BGVault</div>
+  <div class="nav-count">Collection · <span id="nav-count">39</span> games</div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  <div class="hero-slideshow" id="hero-slideshow"></div>
+
+  <div class="hero-content">
+    <div class="hero-tag">Ali's Collection · alik13722</div>
+    <h1 class="hero-title">
+      <span class="line1">Board Game</span>
+      <span class="line2">Vault</span>
+    </h1>
+    <p class="hero-sub">39 handpicked tabletop experiences</p>
+    <div class="hero-stats">
+      <div><span class="hero-stat-n">39</span><span class="hero-stat-l">Games</span></div>
+      <div><span class="hero-stat-n">2008</span><span class="hero-stat-l">Oldest</span></div>
+      <div><span class="hero-stat-n">2023</span><span class="hero-stat-l">Newest</span></div>
+    </div>
+  </div>
+  <div class="scroll-hint">scroll</div>
+</section>
+
+<!-- FEATURED SLIDESHOW -->
+<section class="featured">
+  <div class="section-label">
+    <span class="section-label-text">Featured Games</span>
+  </div>
+  <div class="slideshow-wrap" id="slideshow">
+    <!-- injected by JS -->
+  </div>
+</section>
+
+<!-- VAULT -->
+<section class="vault">
+  <div class="section-label">
+    <span class="section-label-text">All Games <span class="count-badge" id="result-count">39</span></span>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="f-btn active" data-filter="all"><span>All</span></button>
+    <button class="f-btn" data-filter="strategy"><span>Strategy</span></button>
+    <button class="f-btn" data-filter="family"><span>Family</span></button>
+    <button class="f-btn" data-filter="2p"><span>2 Players</span></button>
+    <button class="f-btn" data-filter="quick"><span>Quick Play</span></button>
+    <button class="f-btn" data-filter="epic"><span>Epic (2h+)</span></button>
+  </div>
+
+  <div class="search-wrap">
+    <input class="s-input" type="text" id="search" placeholder="Search games...">
+  </div>
+
+  <div class="game-grid" id="grid"></div>
+</section>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modal-close">✕</button>
+    <div class="modal-img-wrap">
+      <img class="modal-img" id="modal-img" src="" alt="">
+      <div class="modal-glow"></div>
+    </div>
+    <div class="modal-body">
+      <h2 class="modal-title" id="modal-title"></h2>
+      <span class="modal-year" id="modal-year"></span>
+      <div class="modal-props" id="modal-props"></div>
+      <a class="modal-bgg" id="modal-bgg" href="#" target="_blank">View on BoardGameGeek ↗</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const GAMES=[
+  {id:173346,name:"7 Wonders Duel",year:2015,img:"https://cf.geekdo-images.com/zdagMskTF7wJBPjX74XsRw__small/img/gV1-ckZSIC-dCxxpq1Y7GmPITzQ=/fit-in/200x150/filters:strip_icc()/pic2576399.jpg",players:"2",time:"30 min",weight:"Medium",tags:["strategy","2p"]},
+  {id:352596,name:"Ancient Realm",year:2023,img:"https://cf.geekdo-images.com/I-UODFYL2Y77VM2_lFWVmw__small/img/Do0xsmGCmi5mzhu6wbMAm_F4C7k=/fit-in/200x150/filters:strip_icc()/pic7379693.png",players:"1–4",time:"45–90 min",weight:"Medium",tags:["strategy"]},
+  {id:236457,name:"Architects of the West Kingdom",year:2018,img:"https://cf.geekdo-images.com/OAX7HfOz-9N60StgADzd0g__small/img/sBMaoJ-Kz74lJ6djcl-NNMTr0Wo=/fit-in/200x150/filters:strip_icc()/pic3781944.png",players:"1–5",time:"60–80 min",weight:"Medium",tags:["strategy"]},
+  {id:342942,name:"Ark Nova",year:2021,img:"https://cf.geekdo-images.com/SoU8p28Sk1s8MSvoM4N8pQ__small/img/4KuHNTWSMPf8vTNDKSRMMI3oOv8=/fit-in/200x150/filters:strip_icc()/pic6293412.jpg",players:"1–4",time:"90–150 min",weight:"Heavy",tags:["strategy","epic"]},
+  {id:234477,name:"Battle for Rokugan",year:2017,img:"https://cf.geekdo-images.com/JzE8OpFRdj53PwkJRmAIVQ__small/img/wQo-lcn632l0PSEB0rhvm_A6laU=/fit-in/200x150/filters:strip_icc()/pic3741716.jpg",players:"2–5",time:"60–90 min",weight:"Medium",tags:["strategy"]},
+  {id:258210,name:"Blitzkrieg!",year:2019,img:"https://cf.geekdo-images.com/O03NSgVOl-FsbLiAg_GV1w__small/img/_Oz_KuJStdA9akO-zfZ1rlrdxr4=/fit-in/200x150/filters:strip_icc()/pic4306846.jpg",players:"2",time:"20 min",weight:"Light",tags:["strategy","2p","quick"]},
+  {id:275913,name:"Bruxelles 1897",year:2019,img:"https://cf.geekdo-images.com/epYZrJ9M2vTl6ITcl28eQg__small/img/IX5iReRJ9qKz7NPG2QBiGa3M9nY=/fit-in/200x150/filters:strip_icc()/pic4830437.jpg",players:"2–5",time:"60–90 min",weight:"Medium",tags:["strategy"]},
+  {id:171499,name:"Cacao",year:2015,img:"https://cf.geekdo-images.com/oPxM0e3HTS0rIc-9H496Pg__small/img/WCVlv0gzsj8yHAdyLUDKMb_fmBc=/fit-in/200x150/filters:strip_icc()/pic2379288.jpg",players:"2–4",time:"30–45 min",weight:"Light",tags:["family","quick"]},
+  {id:283155,name:"Calico",year:2020,img:"https://cf.geekdo-images.com/qGkU6XsF1448F_A4P8TY5Q__small/img/l5ODCWYHD8_1x-WFqf-TJZhXT38=/fit-in/200x150/filters:strip_icc()/pic8124431.jpg",players:"1–4",time:"30–45 min",weight:"Light",tags:["family","quick"]},
+  {id:47,name:"Chinatown",year:1999,img:"https://cf.geekdo-images.com/o23NBqu_LBRAtRaVoOBBhQ__small/img/VEXGKhNHkULY2hJ41r4Agob5RvE=/fit-in/200x150/filters:strip_icc()/pic403442.jpg",players:"3–5",time:"60 min",weight:"Light",tags:["family"]},
+  {id:313010,name:"Cosmic Encounter",year:2018,img:"https://cf.geekdo-images.com/-pnk2c0HTQQrhqRjjG835Q__small/img/GNv4-bHiFZLXPoyT7q8BW_Q5omo=/fit-in/200x150/filters:strip_icc()/pic4243113.jpg",players:"3–5",time:"60–120 min",weight:"Light",tags:["family"]},
+  {id:324856,name:"The Crew: Mission Deep Sea",year:2021,img:"https://cf.geekdo-images.com/VuBqZ1sMaDAVVHF_OEJP4g__small/img/EdacXlcFZ06YK0-ZKa0oKwL4VCw=/fit-in/200x150/filters:strip_icc()/pic5988903.jpg",players:"2–5",time:"20 min",weight:"Light",tags:["family","quick"]},
+  {id:246784,name:"Cryptid",year:2018,img:"https://cf.geekdo-images.com/qrPLpAnhFgc470ZRuXlvbg__small/img/ZFL0o-lhnuWE21Sa9YS8qi8ayGU=/fit-in/200x150/filters:strip_icc()/pic4037705.jpg",players:"3–5",time:"30–50 min",weight:"Medium",tags:["family","quick"]},
+  {id:143986,name:"CV",year:2013,img:"https://cf.geekdo-images.com/WVXZAwPbX0LAYmXm4HiE6Q__small/img/IqyCEZCOaYZyEwKdegYtJjKO5ME=/fit-in/200x150/filters:strip_icc()/pic1968267.jpg",players:"2–4",time:"45 min",weight:"Light",tags:["family","quick"]},
+  {id:150376,name:"Dead of Winter",year:2014,img:"https://cf.geekdo-images.com/g4mV4BH-ZrhMUVgil-yV1A__small/img/foFGN8KwmN8BaYNpolq0HcMba4M=/fit-in/200x150/filters:strip_icc()/pic3016500.jpg",players:"2–5",time:"60–120 min",weight:"Medium",tags:["strategy"]},
+  {id:322703,name:"Death Valley",year:2021,img:"https://cf.geekdo-images.com/aDs97Vr3NP_vc-bg-w1jzw__small/img/SF4O-o1F_5TpdJPXtPU32nJ595M=/fit-in/200x150/filters:strip_icc()/pic8807033.png",players:"1–4",time:"30–60 min",weight:"Light",tags:["family"]},
+  {id:157354,name:"Five Tribes",year:2014,img:"https://cf.geekdo-images.com/dmo-WD6HZHVUPrbVHunaTw__small/img/I6KVJlQgS1GfWDPSWAFNqce4Cgc=/fit-in/200x150/filters:strip_icc()/pic2055255.jpg",players:"2–4",time:"40–80 min",weight:"Medium",tags:["strategy"]},
+  {id:261009,name:"Inuit: The Snow Folk",year:2019,img:"https://cf.geekdo-images.com/1rcgdy0jY1EaTGR_xKFdhg__small/img/V2KXCC8bp6x0rWjbeOYK2XRRhA4=/fit-in/200x150/filters:strip_icc()/pic4583623.jpg",players:"2–4",time:"30–45 min",weight:"Light",tags:["family","quick"]},
+  {id:319966,name:"The King Is Dead",year:2020,img:"https://cf.geekdo-images.com/p8ATnANurMdieJUELqN3IA__small/img/Cf-tr8Vc6XGuB-sN_rZq65OSVDw=/fit-in/200x150/filters:strip_icc()/pic5680120.jpg",players:"2–4",time:"20–40 min",weight:"Light",tags:["strategy","quick"]},
+  {id:269603,name:"Minecraft: Builders & Biomes",year:2019,img:"https://cf.geekdo-images.com/lAvfCCEBDeyoa1CpdgOFCg__small/img/VWb3wbHwAbNIQJYyeu7-OT_ynJU=/fit-in/200x150/filters:strip_icc()/pic4975740.jpg",players:"2–4",time:"30–60 min",weight:"Light",tags:["family"]},
+  {id:266810,name:"Paladins of the West Kingdom",year:2019,img:"https://cf.geekdo-images.com/4nhokcLdYoo6ulbZ1rmGgA__small/img/1gEbke_bKTA6D2jjpPm1HowGGHM=/fit-in/200x150/filters:strip_icc()/pic4462987.png",players:"1–4",time:"90–120 min",weight:"Medium-Heavy",tags:["strategy","epic"]},
+  {id:30549,name:"Pandemic",year:2008,img:"https://cf.geekdo-images.com/S3ybV1LAp-8SnHIXLLjVqA__small/img/oqViRj6nVxK3m36NluTxU1PZkrk=/fit-in/200x150/filters:strip_icc()/pic1534148.jpg",players:"2–4",time:"45 min",weight:"Light",tags:["family","quick"]},
+  {id:223779,name:"Pocket Mars",year:2017,img:"https://cf.geekdo-images.com/3lvu7MsJsj_9dZ4AKQZemg__small/img/i4bWn3QQP-K3zpvuYwfg1X5AaO0=/fit-in/200x150/filters:strip_icc()/pic3882123.png",players:"1–4",time:"20–30 min",weight:"Light",tags:["family","quick"]},
+  {id:244521,name:"Quacks of Quedlinburg",year:2018,img:"https://cf.geekdo-images.com/B1bLRWzTASZ-xx9NoAE79A__small/img/deG3pr-ORZ3JrGvQA-oQNrwh0l0=/fit-in/200x150/filters:strip_icc()/pic8780293.png",players:"2–4",time:"45 min",weight:"Light",tags:["family","quick"]},
+  {id:176396,name:"Quadropolis",year:2016,img:"https://cf.geekdo-images.com/y7kVtuCs6EfItCGUloqBAA__small/img/SGHJzA_0kYlRzeWTi5s_4JB_EPY=/fit-in/200x150/filters:strip_icc()/pic2840020.jpg",players:"2–4",time:"30–60 min",weight:"Light",tags:["family"]},
+  {id:329082,name:"Radlands",year:2021,img:"https://cf.geekdo-images.com/YpQUtpxNtDHBF5eVcwzBtQ__small/img/tN06HL-O6O-ayKHxEio9xYoJym0=/fit-in/200x150/filters:strip_icc()/pic6478338.png",players:"2",time:"20–40 min",weight:"Medium",tags:["strategy","2p","quick"]},
+  {id:269420,name:"Ragemore",year:2020,img:"https://cf.geekdo-images.com/FFgQzccSVpkmfuJrYNAm4g__small/img/pAiUBF0BQGLRLZnmqVW8Iz_l_Sg=/fit-in/200x150/filters:strip_icc()/pic5484469.png",players:"2–4",time:"20–45 min",weight:"Light",tags:["family","quick"]},
+  {id:170042,name:"Raiders of the North Sea",year:2015,img:"https://cf.geekdo-images.com/hXdfAhgZ8OeyWLunt36wlw__small/img/vh7ttK5C_kKf5YZNYOY4vfsgXHU=/fit-in/200x150/filters:strip_icc()/pic3578101.jpg",players:"2–4",time:"60–80 min",weight:"Medium",tags:["strategy"]},
+  {id:342562,name:"ROVE",year:2021,img:"https://cf.geekdo-images.com/-BTMmbHaR16DRt0OEh5arA__small/img/TVgsZurNXBPCHcx73pMRtfJMsXY=/fit-in/200x150/filters:strip_icc()/pic6494257.png",players:"1",time:"15–30 min",weight:"Light",tags:["quick"]},
+  {id:373106,name:"Sky Team",year:2023,img:"https://cf.geekdo-images.com/uXMeQzNenHb3zK7Hoa6b2w__small/img/WyPClajMWU9lV5BdCXiZnqdZgmU=/fit-in/200x150/filters:strip_icc()/pic7398904.jpg",players:"2",time:"15–25 min",weight:"Light",tags:["strategy","2p","quick"]},
+  {id:148228,name:"Splendor",year:2014,img:"https://cf.geekdo-images.com/vNFe4JkhKAERzi4T0Ntwpw__small/img/KKU_42Uswt4tKCpf1zY5kTzgr-g=/fit-in/200x150/filters:strip_icc()/pic8234167.png",players:"2–4",time:"30 min",weight:"Light",tags:["family","quick"]},
+  {id:374173,name:"Star Wars: The Deckbuilding Game",year:2023,img:"https://cf.geekdo-images.com/U6scsOGrPtVym4nCLaYjyw__small/img/0kgu-vLB9MQStlEyaR6bgKkemAQ=/fit-in/200x150/filters:strip_icc()/pic7387735.png",players:"2",time:"30–60 min",weight:"Medium",tags:["strategy","2p"]},
+  {id:34635,name:"Stone Age",year:2008,img:"https://cf.geekdo-images.com/elmZegVZ6gp4_5izUgxGQQ__small/img/MXq3DEKWIozO-PmB4S64BiE5fd0=/fit-in/200x150/filters:strip_icc()/pic1632539.jpg",players:"2–4",time:"60–90 min",weight:"Medium",tags:["strategy"]},
+  {id:167791,name:"Terraforming Mars",year:2016,img:"https://cf.geekdo-images.com/wg9oOLcsKvDesSUdZQ4rxw__small/img/BTxqxgYay5tHJfVoJ2NF5g43_gA=/fit-in/200x150/filters:strip_icc()/pic3536616.jpg",players:"1–5",time:"120 min",weight:"Heavy",tags:["strategy","epic"]},
+  {id:328871,name:"Terraforming Mars: Ares Expedition",year:2021,img:"https://cf.geekdo-images.com/eT_Atcy_vRJvuUMgYakNrQ__small/img/YxoNRQg9owsoi68POaMY0Ix31ZI=/fit-in/200x150/filters:strip_icc()/pic6260098.jpg",players:"1–4",time:"45–60 min",weight:"Medium",tags:["strategy"]},
+  {id:334137,name:"Top Ten 18+",year:2021,img:"https://cf.geekdo-images.com/eYMLFAmqqNwOb0i7iqTudQ__small/img/G1fwQoNfQbz8RjjEyrBcBDrj9Zk=/fit-in/200x150/filters:strip_icc()/pic6053974.jpg",players:"4–9",time:"30 min",weight:"Light",tags:["family","quick"]},
+  {id:296151,name:"Viscounts of the West Kingdom",year:2020,img:"https://cf.geekdo-images.com/kMgSC_kRlJWt3KLj5y0BxQ__small/img/2uNYQn2vHuNGrx5-dxc1h7Mh7Do=/fit-in/200x150/filters:strip_icc()/pic5230695.png",players:"1–4",time:"60–90 min",weight:"Medium",tags:["strategy"]},
+  {id:350316,name:"Wayfarers of the South Tigris",year:2022,img:"https://cf.geekdo-images.com/bH-ThnratBE1MAB_KdgrWg__small/img/dCxGWUE0ReGJzdx3R_ZaOFwBWjE=/fit-in/200x150/filters:strip_icc()/pic7339734.jpg",players:"1–4",time:"60–90 min",weight:"Medium",tags:["strategy"]},
+  {id:266192,name:"Wingspan",year:2019,img:"https://cf.geekdo-images.com/yLZJCVLlIx4c7eJEWUNJ7w__small/img/VNToqgS2-pOGU6MuvIkMPKn_y-s=/fit-in/200x150/filters:strip_icc()/pic4458123.jpg",players:"1–5",time:"40–70 min",weight:"Medium",tags:["family","strategy"]},
+];
+
+// ── CURSOR ──
+const cursor=document.getElementById('cursor');
+const ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX;my=e.clientY;
+  cursor.style.left=mx+'px';cursor.style.top=my+'px';
+});
+function animRing(){
+  rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;
+  ring.style.left=rx+'px';ring.style.top=ry+'px';
+  requestAnimationFrame(animRing);
+}
+animRing();
+document.querySelectorAll('button,a,.g-card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cursor.style.transform='translate(-50%,-50%) scale(2.5)';ring.style.transform='translate(-50%,-50%) scale(1.5)'});
+  el.addEventListener('mouseleave',()=>{cursor.style.transform='translate(-50%,-50%) scale(1)';ring.style.transform='translate(-50%,-50%) scale(1)'});
+});
+
+// ── SCROLL NAV ──
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').classList.toggle('scrolled',scrollY>50);
+});
+
+// ── HERO SLIDES (background images cycle) ──
+const heroSS=document.getElementById('hero-slideshow');
+const featured=[GAMES[3],GAMES[33],GAMES[1],GAMES[28],GAMES[38]];
+featured.forEach((g,i)=>{
+  const d=document.createElement('div');
+  d.className='slide'+(i===0?' active':'');
+  d.style.backgroundImage=`url(${g.img})`;
+  heroSS.appendChild(d);
+});
+let heroIdx=0;
+setInterval(()=>{
+  heroSS.querySelectorAll('.slide')[heroIdx].classList.remove('active');
+  heroIdx=(heroIdx+1)%featured.length;
+  heroSS.querySelectorAll('.slide')[heroIdx].classList.add('active');
+},3000);
+
+// ── FEATURED SLIDESHOW ──
+const ss=document.getElementById('slideshow');
+const featGames=[GAMES[3],GAMES[33],GAMES[38],GAMES[28],GAMES[0]];
+const dotsEl=document.createElement('div');dotsEl.className='ss-dots';
+const arrowsEl=document.createElement('div');arrowsEl.className='ss-arrows';
+const upBtn=document.createElement('button');upBtn.className='ss-arrow';upBtn.textContent='↑';
+const dnBtn=document.createElement('button');dnBtn.className='ss-arrow';dnBtn.textContent='↓';
+arrowsEl.appendChild(upBtn);arrowsEl.appendChild(dnBtn);
+
+featGames.forEach((g,i)=>{
+  const s=document.createElement('div');
+  s.className='ss-slide'+(i===0?' active':'');
+  s.style.backgroundImage=`url(${g.img})`;
+  s.innerHTML=`<div class="ss-content">
+    <div class="ss-label">Featured Game</div>
+    <div class="ss-title">${g.name}</div>
+    <div class="ss-meta">${g.players} players · ${g.time} · ${g.year}</div>
+  </div>`;
+  ss.appendChild(s);
+  const dot=document.createElement('div');
+  dot.className='ss-dot'+(i===0?' active':'');
+  dot.addEventListener('click',()=>goSlide(i));
+  dotsEl.appendChild(dot);
+});
+ss.appendChild(dotsEl);ss.appendChild(arrowsEl);
+
+let ssIdx=0,ssTimer;
+function goSlide(n){
+  ss.querySelectorAll('.ss-slide')[ssIdx].classList.remove('active');
+  dotsEl.querySelectorAll('.ss-dot')[ssIdx].classList.remove('active');
+  ssIdx=(n+featGames.length)%featGames.length;
+  ss.querySelectorAll('.ss-slide')[ssIdx].classList.add('active');
+  dotsEl.querySelectorAll('.ss-dot')[ssIdx].classList.add('active');
+  clearInterval(ssTimer);ssTimer=setInterval(()=>goSlide(ssIdx+1),4000);
+}
+ssTimer=setInterval(()=>goSlide(ssIdx+1),4000);
+upBtn.addEventListener('click',()=>goSlide(ssIdx-1));
+dnBtn.addEventListener('click',()=>goSlide(ssIdx+1));
+
+// ── 3D CARD TILT ──
+function addTilt(el){
+  el.addEventListener('mousemove',e=>{
+    const r=el.getBoundingClientRect();
+    const x=(e.clientX-r.left)/r.width-0.5;
+    const y=(e.clientY-r.top)/r.height-0.5;
+    el.style.transform=`translateY(-8px) scale(1.02) rotateY(${x*12}deg) rotateX(${-y*12}deg)`;
+  });
+  el.addEventListener('mouseleave',()=>{
+    el.style.transform='';
+  });
+}
+
+// ── RENDER ──
+let activeFilter='all',searchQ='';
+function filterGames(){
+  return GAMES.filter(g=>{
+    const mf=activeFilter==='all'||g.tags.includes(activeFilter);
+    const ms=g.name.toLowerCase().includes(searchQ.toLowerCase());
+    return mf&&ms;
+  });
+}
+function render(){
+  const games=filterGames();
+  const grid=document.getElementById('grid');
+  document.getElementById('result-count').textContent=games.length;
+  document.getElementById('nav-count').textContent=games.length;
+  if(!games.length){
+    grid.innerHTML='<div class="empty"><span class="empty-icon">🎲</span><p>No games found.</p></div>';
+    return;
+  }
+  grid.innerHTML=games.map(g=>`
+    <div class="g-card" data-id="${g.id}">
+      <div class="g-img-wrap">
+        <img class="g-img" src="${g.img}" alt="${g.name}" loading="lazy">
+      </div>
+      <div class="g-body">
+        <div class="g-name">${g.name}</div>
+        <div class="g-tags">
+          <span class="g-tag">👥 ${g.players}</span>
+          <span class="g-tag amber">⏱ ${g.time}</span>
+        </div>
+        <div class="g-meta">
+          <span class="g-year">${g.year}</span>
+          <a class="g-bgg-link" href="https://boardgamegeek.com/boardgame/${g.id}" target="_blank" onclick="event.stopPropagation()">BGG ↗</a>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('.g-card').forEach(card=>{
+    addTilt(card);
+    card.addEventListener('click',()=>{
+      const g=GAMES.find(x=>x.id==card.dataset.id);
+      openModal(g);
+    });
+  });
+}
+
+// ── MODAL ──
+function openModal(g){
+  document.getElementById('modal-img').src=g.img;
+  document.getElementById('modal-title').textContent=g.name;
+  document.getElementById('modal-year').textContent=g.year;
+  document.getElementById('modal-props').innerHTML=`
+    <div class="modal-prop"><dt>Players</dt><dd>${g.players}</dd></div>
+    <div class="modal-prop"><dt>Play Time</dt><dd>${g.time}</dd></div>
+    <div class="modal-prop"><dt>Complexity</dt><dd>${g.weight}</dd></div>
+    <div class="modal-prop"><dt>Year</dt><dd>${g.year}</dd></div>
+  `;
+  document.getElementById('modal-bgg').href=`https://boardgamegeek.com/boardgame/${g.id}`;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+document.getElementById('modal-close').addEventListener('click',closeModal);
+document.getElementById('modal-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal-overlay'))closeModal();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
+// ── FILTERS ──
+document.querySelectorAll('.f-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.f-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter=btn.dataset.filter;
+    render();
+  });
+});
+
+// ── SEARCH ──
+document.getElementById('search').addEventListener('input',e=>{
+  searchQ=e.target.value;render();
+});
+
+// ── SCROLL REVEAL ──
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.style.opacity='1';
+      e.target.style.transform='translateY(0)';
+    }
+  });
+},{threshold:0.1});
+
+render();
+
+setTimeout(()=>{
+  document.querySelectorAll('.g-card').forEach((card,i)=>{
+    card.style.opacity='0';
+    card.style.transform='translateY(30px)';
+    card.style.transition=`opacity 0.5s ${i*0.05}s ease, transform 0.5s ${i*0.05}s ease, border-color 0.3s, box-shadow 0.3s`;
+    observer.observe(card);
+  });
+},100);
+</script>
+</body>
+</html>
